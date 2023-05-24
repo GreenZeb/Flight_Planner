@@ -1,7 +1,6 @@
 using FlightPlaner_ASPNET.Models;
-using FlightPlaner_ASPNET.Storage;
+using FlightPlaner;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlightPlaner_ASPNET.Controllers;
@@ -9,15 +8,19 @@ namespace FlightPlaner_ASPNET.Controllers;
 [Route("admin-api")]
 [ApiController]
 [Authorize]
-public class AdminApiController : ControllerBase
+public class AdminApiController : BaseApiController
 {
     private static readonly object _lock = new object();
 
+    public AdminApiController(FlightPlannerDbContext context) : base(context)
+    {
+    }
+
     [HttpGet]
     [Route("flights/{id}")]
-    public IActionResult GetFlights(int id)
+    public IActionResult GetFlightById(int id)
     {
-        var flight = FlightStorage.GetFlight(id);
+        var flight = _context.Flights.SingleOrDefault(f => f.Id == id);
         if (flight == null)
         {
             return NotFound();
@@ -32,16 +35,24 @@ public class AdminApiController : ControllerBase
     {
         lock (_lock)
         {
-            if (FlightStorage.Exists(flight))
+            if (_context.Flights.Any(f => f.From.City.ToLower() == flight.From.City.ToLower()
+                                             && f.To.City.ToLower() == flight.To.City.ToLower()
+                                             && f.Carrier.ToLower() == flight.Carrier.ToLower()
+                                             && f.DepartureTime == flight.DepartureTime &&
+                                             f.ArrivalTime == flight.ArrivalTime))
+            {
                 return Conflict();
+            }
 
-            if (!FlightStorage.IsValid(flight))
+            if (!Validation.IsValid(flight))
+            {
                 return BadRequest();
+            }
 
-            if (FlightStorage.IsItTheSameAirport(flight))
-                return BadRequest();
+            _context.Flights.Add(flight);
+            _context.SaveChanges();
 
-            return Created("", FlightStorage.AddFlight(flight));
+            return Created("", flight);
         }
     }
 
@@ -49,9 +60,19 @@ public class AdminApiController : ControllerBase
     [Route("flights/{id}")]
     public IActionResult DeleteFlights(int id)
     {
+        lock (_lock)
         {
-            FlightStorage.DeleteFlight(id);
-            return Ok();
+            var flight = _context.Flights.SingleOrDefault(f => f.Id == id);
+            if (flight != null)
+            {
+                _context.Flights.Remove(flight);
+                _context.SaveChanges();
+                return Ok();
+            }
+            else
+            {
+                return Ok();
+            }
         }
     }
 }
