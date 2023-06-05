@@ -1,5 +1,6 @@
-using FlightPlaner_ASPNET.Models;
-using FlightPlaner;
+using FlightPlanner.Core.Models;
+using FlightPlanner.Data;
+using FlightPlanner.Services.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

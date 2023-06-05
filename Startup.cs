@@ -1,4 +1,4 @@
-using FlightPlaner_ASPNET;
+using FlightPlanner.Data;
 using FlightPlaner_ASPNET.Handlers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;

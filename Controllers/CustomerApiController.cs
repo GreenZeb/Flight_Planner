@@ -1,7 +1,8 @@
-﻿using FlightPlaner_ASPNET.Models;
-using FlightPlaner;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using FlightPlanner.Core.Models;
+using FlightPlanner.Data;
+using FlightPlanner.Services.Validators;
 
 namespace FlightPlaner_ASPNET.Controllers
 {
