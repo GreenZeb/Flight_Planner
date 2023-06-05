@@ -1,78 +1,88 @@
+using AutoMapper;
 using FlightPlanner.Core.Models;
-using FlightPlanner.Data;
+using FlightPlanner.Core.Services;
+using FlightPlanner.Core;
 using FlightPlanner.Services.Validators;
+using FlightPlanner_ASPNET.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FlightPlaner_ASPNET.Controllers;
-
-[Route("admin-api")]
-[ApiController]
-[Authorize]
-public class AdminApiController : BaseApiController
+namespace FlightPlanner_ASPNET.Controllers
 {
-    private static readonly object _lock = new object();
-
-    public AdminApiController(FlightPlannerDbContext context) : base(context)
+    [Route("admin-api")]
+    [ApiController]
+    [Authorize]
+    public class AdminApiController : ControllerBase
     {
-    }
+        private static readonly object _lock = new object();
+        private readonly IFlightService _flightService;
+        private readonly IMapper _mapper;
+        private readonly IEnumerable<IFlightValidate> _validators;
 
-    [HttpGet]
-    [Route("flights/{id}")]
-    public IActionResult GetFlightById(int id)
-    {
-        var flight = _context.Flights.SingleOrDefault(f => f.Id == id);
-        if (flight == null)
+        public AdminApiController (
+                IFlightService flightService,
+                IMapper mapper,
+                IEnumerable<IFlightValidate> validators)
         {
-            return NotFound();
+            _flightService = flightService;
+            _mapper = mapper;
+            _validators = validators;
         }
 
-        return Ok(flight);
-    }
-
-    [HttpPut]
-    [Route("flights")]
-    public IActionResult AddFlight(Flight flight)
-    {
-        lock (_lock)
+        [HttpGet]
+        [Route("flights/{id}")]
+        public IActionResult GetFlightById(int id)
         {
-            if (_context.Flights.Any(f => f.From.City.ToLower() == flight.From.City.ToLower()
-                                             && f.To.City.ToLower() == flight.To.City.ToLower()
-                                             && f.Carrier.ToLower() == flight.Carrier.ToLower()
-                                             && f.DepartureTime == flight.DepartureTime &&
-                                             f.ArrivalTime == flight.ArrivalTime))
+            var flight = _flightService.GetFullFlight(id);
+
+            if (flight == null)
             {
-                return Conflict();
+                return NotFound();
             }
 
-            if (!Validation.IsValid(flight))
-            {
-                return BadRequest();
-            }
-
-            _context.Flights.Add(flight);
-            _context.SaveChanges();
-
-            return Created("", flight);
+            return Ok(_mapper.Map<AddFlightRequest>(flight));
         }
-    }
 
-    [HttpDelete]
-    [Route("flights/{id}")]
-    public IActionResult DeleteFlights(int id)
-    {
-        lock (_lock)
+        [HttpPut]
+        [Route("flights")]
+        public IActionResult AddFlight(AddFlightRequest request)
         {
-            var flight = _context.Flights.SingleOrDefault(f => f.Id == id);
-            if (flight != null)
+            var flight = _mapper.Map<Flight>(request);
+
+            lock (_lock)
             {
-                _context.Flights.Remove(flight);
-                _context.SaveChanges();
-                return Ok();
+                if (_flightService.FlightExists(flight))
+                {
+                    return Conflict();
+                }
+
+                if (!FlightValidation.IsValid(flight))
+                {
+                    return BadRequest();
+                }
+
+                _flightService.Create(flight);
+
+                return Created("", _mapper.Map<AddFlightRequest>(flight));
             }
-            else
+        }
+
+        [HttpDelete]
+        [Route("flights/{id}")]
+        public IActionResult DeleteFlights(int id)
+        {
+            var flight = _flightService.GetFullFlight(id);
+            lock (_lock)
             {
-                return Ok();
+                if (flight != null)
+                {
+                    _flightService.Delete(flight);
+                    return Ok();
+                }
+                else
+                {
+                    return Ok();
+                }
             }
         }
     }

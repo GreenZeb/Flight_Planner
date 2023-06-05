@@ -3,7 +3,7 @@ using FlightPlanner.Core.Models;
 
 namespace FlightPlanner.Services.Validators;
 
-    public static class Validation
+    public static class FlightValidation
     {
         private static object _lock = new object();
        
@@ -34,7 +34,7 @@ namespace FlightPlanner.Services.Validators;
                     string.IsNullOrEmpty(flight.To.Country))
                     return false;
 
-                if (IsSameAirport(flight.From, flight.To))
+                if (SameAirportValidation.IsSameAirport(flight.From, flight.To))
                     return false;
 
                 var arrivalTime = DateTime.Parse(flight.ArrivalTime);
@@ -45,26 +45,5 @@ namespace FlightPlanner.Services.Validators;
 
                 return true;
             }
-        }
-
-        public static bool IsValidSearch(SearchFlightsRequest request)
-        {
-            if (request == null)
-                return false;
-
-            if (string.IsNullOrEmpty(request.DepartureDate) ||
-                string.IsNullOrEmpty(request.From) ||
-                string.IsNullOrEmpty(request.To))
-                return false;
-
-            if (request.From == request.To)
-                return false;
-
-            return true;
-        }
-
-        public static bool IsSameAirport(Airport from, Airport to)
-        {
-            return from.AirportCode.ToLower().Trim() == to.AirportCode.ToLower().Trim();
         }
     }

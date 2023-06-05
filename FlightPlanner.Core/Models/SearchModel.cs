@@ -1,15 +1,11 @@
-﻿
-namespace FlightPlanner.Core.Models;
+﻿using FlightPlanner.Core.Models;
+
+namespace FlightPlaner.Core.Models
+{
     public class SearchModel
     {
         public int Page { get; set; }
         public int TotalItems { get; set; }
-        public Array Items { get; set; }
-
-        public SearchModel(int totalItems, Array items)
-        {
-            Page = 0;
-            TotalItems = totalItems;
-            Items = items;
-        }
+        public List<Flight> Items { get; set; } = new List<Flight>();
     }
+}
